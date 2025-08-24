@@ -38,7 +38,18 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "store.apps.StoreConfig",
+    "rest_framework",
+    "drf_yasg"
 ]
+
+import cloudinary
+
+cloudinary.config(
+    cloud_name = "djpu1ku1j",
+    api_key = "135796148662175",
+    api_secret = "zsN_da-VBO6xXZHXzfY0mR-s8q8",
+    secure = True
+)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+from cloudinary.models import CloudinaryField
 
 # ==========================
 # ENUM CHO LỰA CHỌN
@@ -75,7 +76,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
     barcode = models.CharField(max_length=100, unique=True, blank=True, null=True)
-    image_url = models.URLField(blank=True, null=True)
+    image = CloudinaryField('image', blank=True, null=True)
 
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name="products")
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")
@@ -85,7 +86,7 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
-    image_url = models.URLField()
+    image = CloudinaryField('image', blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
 

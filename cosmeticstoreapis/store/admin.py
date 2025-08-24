@@ -37,7 +37,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductImage)
 class ProductImageAdmin(admin.ModelAdmin):
-	list_display = ("product", "image_url", "uploaded_at")
+	list_display = ("product", "image", "uploaded_at")
 
 @admin.register(ImportTransaction)
 class ImportTransactionAdmin(admin.ModelAdmin):

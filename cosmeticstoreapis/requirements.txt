@@ -1,4 +1,15 @@
 asgiref==3.9.1
+certifi==2025.8.3
+cloudinary==1.44.1
 Django==5.2.5
+djangorestframework==3.16.1
+drf-yasg==1.21.10
+inflection==0.5.1
+packaging==25.0
 PyMySQL==1.1.1
+pytz==2025.2
+PyYAML==6.0.2
+six==1.17.0
 sqlparse==0.5.3
+uritemplate==4.2.0
+urllib3==2.5.0
