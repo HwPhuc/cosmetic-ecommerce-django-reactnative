@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "cosmeticstoreapp",
+    "slug": "cosmeticstoreapp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "CLIENT_ID": "Il0IAkhmKEkQSxTWMfrVSeW8hEPVB5NLF3aOoz8m",
+      "CLIENT_SECRET": "mkX7Zz8QwqYMEmtMOHRGoH3KW8iSHF8nOzc5aMwd6ZFxwR0NMCRCePGp64gwXV3e64zzJkdiKAfKAMh3CkHvZ9xnfucloTcH8JLz48yDf3YUFTGaFGvmGiYaTrg80vaY"
+    }
+  }
+}

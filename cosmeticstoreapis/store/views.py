@@ -1,4 +1,10 @@
+from django.contrib.auth import get_user_model
+from rest_framework.views import APIView
+from rest_framework import status
+from .serializers import UserSerializer
 from rest_framework import viewsets, generics, filters
+from rest_framework.permissions import IsAuthenticated
+from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope
 from rest_framework.response import Response
 from .models import (
 	Product, Category, Order, Review,
@@ -12,6 +18,35 @@ from .permissions import IsStaffOrReadOnly, IsOwnerOrAdmin
 from .pagination import StandardResultsSetPagination
 
 
+# API lấy thông tin user hiện tại
+class CurrentUserAPIView(APIView):
+	permission_classes = [IsAuthenticated]
+
+	def get(self, request):
+		serializer = UserSerializer(request.user)
+		return Response(serializer.data)
+
+# API đăng ký user mới
+class RegisterUserAPIView(APIView):
+	def post(self, request):
+		serializer = UserSerializer(data=request.data)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(serializer.data, status=status.HTTP_201_CREATED)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# API cập nhật thông tin user hiện tại
+class UpdateUserAPIView(APIView):
+	permission_classes = [IsAuthenticated]
+
+	def patch(self, request):
+		serializer = UserSerializer(request.user, data=request.data, partial=True)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(serializer.data)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 # Product chỉ staff được chỉnh sửa, người khác chỉ xem
 class ProductViewSet(viewsets.ViewSet, generics.ListAPIView):
 	filter_backends = [filters.SearchFilter]
@@ -19,7 +54,7 @@ class ProductViewSet(viewsets.ViewSet, generics.ListAPIView):
 	queryset = Product.objects.all().order_by('id')
 	serializer_class = ProductSerializer
 	pagination_class = StandardResultsSetPagination
-	permission_classes = [IsStaffOrReadOnly]
+	permission_classes = [IsAuthenticated, IsStaffOrReadOnly, TokenHasReadWriteScope]
 
 	def retrieve(self, request, pk=None):
 		try:
@@ -63,7 +98,7 @@ class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
 	queryset = Category.objects.all().order_by('id')
 	serializer_class = CategorySerializer
 	pagination_class = StandardResultsSetPagination
-	permission_classes = [IsStaffOrReadOnly]
+	permission_classes = [IsAuthenticated, IsStaffOrReadOnly, TokenHasReadWriteScope]
 
 	def retrieve(self, request, pk=None):
 		try:
@@ -107,7 +142,7 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
 	queryset = Order.objects.all().order_by('id')
 	serializer_class = OrderSerializer
 	pagination_class = StandardResultsSetPagination
-	permission_classes = [IsOwnerOrAdmin]
+	permission_classes = [IsAuthenticated, IsOwnerOrAdmin, TokenHasReadWriteScope]
 
 	def retrieve(self, request, pk=None):
 		try:
@@ -151,7 +186,7 @@ class ReviewViewSet(viewsets.ViewSet, generics.ListAPIView):
 	queryset = Review.objects.all().order_by('id')
 	serializer_class = ReviewSerializer
 	pagination_class = StandardResultsSetPagination
-	permission_classes = [IsOwnerOrAdmin]
+	permission_classes = [IsAuthenticated, IsOwnerOrAdmin, TokenHasReadWriteScope]
 
 	def retrieve(self, request, pk=None):
 		try:
@@ -195,7 +230,7 @@ class CartViewSet(viewsets.ViewSet, generics.ListAPIView):
 	queryset = Cart.objects.all().order_by('id')
 	serializer_class = CartSerializer
 	pagination_class = StandardResultsSetPagination
-	permission_classes = [IsOwnerOrAdmin]
+	permission_classes = [IsAuthenticated, IsOwnerOrAdmin, TokenHasReadWriteScope]
 
 	def retrieve(self, request, pk=None):
 		try:
@@ -239,7 +274,7 @@ class CartItemViewSet(viewsets.ViewSet, generics.ListAPIView):
 	queryset = CartItem.objects.all().order_by('id')
 	serializer_class = CartItemSerializer
 	pagination_class = StandardResultsSetPagination
-	permission_classes = [IsOwnerOrAdmin]
+	permission_classes = [IsAuthenticated, IsOwnerOrAdmin, TokenHasReadWriteScope]
 
 	def retrieve(self, request, pk=None):
 		try:
