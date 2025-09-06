@@ -21,7 +21,7 @@ class BrandAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-	list_display = ("name", "description")
+	list_display = ("name", "description", "image")
 	search_fields = ("name",)
 
 class ProductImageInline(admin.TabularInline):
@@ -30,7 +30,7 @@ class ProductImageInline(admin.TabularInline):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-	list_display = ("name", "brand", "category", "price", "stock", "barcode")
+	list_display = ("name", "brand", "category", "price", "stock", "sold", "barcode")
 	search_fields = ("name", "barcode")
 	list_filter = ("brand", "category")
 	inlines = [ProductImageInline]

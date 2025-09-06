@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { UserDispatchContext } from '../../configs/Contexts';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { CLIENT_ID, CLIENT_SECRET, TOKEN_URL, axiosInstance, authAxios, endpoints } from '../../configs/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -13,6 +14,10 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     setError('');
+    if (!email || !password) {
+      setError('Vui lòng nhập địa chỉ email và mật khẩu!');
+      return;
+    }
     try {
       const data = {
         grant_type: 'password',
@@ -25,7 +30,7 @@ export default function LoginScreen({ navigation }) {
         headers: { 'Content-Type': 'application/json' }
       });
       console.log('Access Token:', res.data.access_token);
-      await AsyncStorage.setItem('token', res.data.access_token);
+      await AsyncStorage.setItem('access_token', res.data.access_token);
       // Gọi API lấy thông tin user
       const userRes = await authAxios(res.data.access_token).get(endpoints.currentUser);
       // Lưu username vào AsyncStorage để HomeScreen hiển thị đúng
@@ -37,7 +42,11 @@ export default function LoginScreen({ navigation }) {
       if (err.response) {
         console.log('Status:', err.response.status);
         console.log('Data:', err.response.data);
-        setError(err.response.data.error_description || 'Đăng nhập thất bại!');
+        if (err.response.status === 400 || err.response.status === 401) {
+          setError('Email hoặc mật khẩu không đúng!');
+        } else {
+          setError(err.response.data.error_description || 'Đăng nhập thất bại!');
+        }
       } else {
         setError('Lỗi kết nối hoặc cấu hình!');
       }
@@ -52,7 +61,7 @@ export default function LoginScreen({ navigation }) {
         <Text style={styles.subtitle}>Đăng nhập tài khoản</Text>
       </View>
       <View style={styles.form}>
-        <Text style={styles.label}>Địa chỉ Email</Text>
+        <Text style={styles.label}>Tên đăng nhập</Text>
         <TextInput
           style={styles.input}
           value={email}
@@ -70,7 +79,11 @@ export default function LoginScreen({ navigation }) {
             placeholder=""
           />
           <TouchableOpacity style={styles.eyeIcon} onPress={() => setSecure(!secure)}>
-            <Text style={styles.eye}>{secure ? '👁️' : '🙈'}</Text>
+            <MaterialCommunityIcons
+              name={secure ? 'eye-outline' : 'eye-off-outline'}
+              size={24}
+              color="#1976d2"
+            />
           </TouchableOpacity>
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -165,7 +178,7 @@ const styles = StyleSheet.create({
   eyeIcon: {
     position: 'absolute',
     right: 10,
-    top: 12,
+    top: 10,
     zIndex: 1,
   },
   eye: {

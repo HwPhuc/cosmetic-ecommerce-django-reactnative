@@ -2,6 +2,7 @@ import axios from "axios";
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+// export const API_URL = 'http://0.0.0.0:8000';
 export const API_URL = 'http://192.168.1.167:8000';
 
 // OAuth2 config
@@ -13,9 +14,10 @@ export const TOKEN_URL = `${API_URL}/o/token/`;
 export const endpoints = {
 	categories: '/categories/',
 	products: '/products/',
-	register: '/users/',
+	register: '/register/',
 	login: '/o/token/',
 	currentUser: '/current-user/',
+	updateUser: '/update-user/',
 	productDetails: (id) => `/products/${id}/`,
 };
 

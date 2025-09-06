@@ -3,6 +3,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from './components/User/LoginScreen';
 import HomeScreen from './components/Home/HomeScreen';
+import ProductDetailScreen from './components/Home/ProductDetailScreen';
+import RegisterScreen from './components/User/RegisterScreen';
+import ProfileScreen from './components/User/ProfileScreen';
+import EditProfileScreen from './components/User/EditProfileScreen';
 import UserReducer from './reducers/UserReducer';
 import { UserContext, UserDispatchContext } from './configs/Contexts';
 
@@ -17,6 +21,10 @@ export default function App() {
           <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </UserDispatchContext.Provider>

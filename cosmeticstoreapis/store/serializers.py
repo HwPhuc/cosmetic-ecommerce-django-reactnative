@@ -3,8 +3,11 @@ from .models import *
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    email = serializers.EmailField(write_only=True, required=True)
-    phone = serializers.CharField(write_only=True, required=False)
+    email = serializers.EmailField(read_only=False, required=False)
+    phone = serializers.CharField(required=False)
+    image = serializers.CharField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
     created_at = serializers.DateTimeField(read_only=True)
     last_login = serializers.DateTimeField(read_only=True)
 
@@ -20,7 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'phone', 'role', 'password', 'is_active', 'is_staff', 'is_superuser', 'created_at', 'last_login')
+        fields = ('id', 'username', 'email', 'phone', 'first_name', 'last_name', 'image', 'role', 'password', 'is_active', 'is_staff', 'is_superuser', 'created_at', 'last_login')
         extra_kwargs = {
             'is_active': {'read_only': True},
             'is_staff': {'read_only': True},
@@ -68,6 +71,11 @@ class BrandSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CategorySerializer(serializers.ModelSerializer):
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['image'] = instance.image.url if instance.image else ''
+        return data
+
     class Meta:
         model = Category
         fields = '__all__'
@@ -103,7 +111,12 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id', 'name', 'description', 'price', 'stock', 'barcode', 'image', 'brand', 'category', 'images', 'review_count', 'promotion_names', 'created_at')
+        fields = (
+            'id', 'name', 'description', 'price', 'stock', 'sold',
+            'barcode', 'image', 'brand', 'category', 'images',
+            'review_count', 'promotion_names', 'created_at',
+            'capacity', 'origin', 'ingredients', 'skin_type'
+        )
     
 class ImportTransactionSerializer(serializers.ModelSerializer):
     import_date = serializers.DateTimeField(read_only=True)
@@ -159,9 +172,9 @@ class PaymentTransactionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ReviewSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField(read_only=True)
+    user = UserSerializer(read_only=True)
     product = serializers.StringRelatedField(read_only=True)
-    comment = serializers.CharField(write_only=True)
+    comment = serializers.CharField()
     created_at = serializers.DateTimeField(read_only=True)
 
     def validate_rating(self, value):

@@ -28,6 +28,9 @@
     "extra": {
       "CLIENT_ID": "Il0IAkhmKEkQSxTWMfrVSeW8hEPVB5NLF3aOoz8m",
       "CLIENT_SECRET": "mkX7Zz8QwqYMEmtMOHRGoH3KW8iSHF8nOzc5aMwd6ZFxwR0NMCRCePGp64gwXV3e64zzJkdiKAfKAMh3CkHvZ9xnfucloTcH8JLz48yDf3YUFTGaFGvmGiYaTrg80vaY"
-    }
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }

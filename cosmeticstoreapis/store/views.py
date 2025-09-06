@@ -183,10 +183,15 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
 class ReviewViewSet(viewsets.ViewSet, generics.ListAPIView):
 	filter_backends = [filters.SearchFilter]
 	search_fields = ['comment']
-	queryset = Review.objects.all().order_by('id')
 	serializer_class = ReviewSerializer
 	pagination_class = StandardResultsSetPagination
 	permission_classes = [IsAuthenticated, IsOwnerOrAdmin, TokenHasReadWriteScope]
+
+	def get_queryset(self):
+		product_id = self.request.query_params.get('product')
+		if product_id:
+			return Review.objects.filter(product_id=product_id).order_by('id')
+		return Review.objects.all().order_by('id')
 
 	def retrieve(self, request, pk=None):
 		try:
