@@ -5,7 +5,7 @@ from .models import (
 	PaymentTransaction, Review,
 	DiscountCode, Promotion,
 	Notification, UserNotification,
-	ChatMessage
+	ChatMessage, DiscountCode
 )
 
 @admin.register(User)

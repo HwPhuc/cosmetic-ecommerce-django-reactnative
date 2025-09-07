@@ -1,3 +1,5 @@
+from .serializers import DiscountCodeSerializer
+from .models import DiscountCode
 from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework import status
@@ -16,6 +18,7 @@ from .serializers import (
 )
 from .permissions import IsStaffOrReadOnly, IsOwnerOrAdmin
 from .pagination import StandardResultsSetPagination
+from rest_framework.decorators import action
 
 
 # API lấy thông tin user hiện tại
@@ -358,4 +361,60 @@ class CartItemViewSet(viewsets.ViewSet, generics.ListAPIView):
 			serializer.save()
 			return Response(serializer.data)
 		return Response(serializer.errors, status=400)
+
+
+# DiscountCode chỉ staff được chỉnh sửa, người khác chỉ xem
+class DiscountCodeViewSet(viewsets.ViewSet, generics.ListAPIView):
+	filter_backends = [filters.SearchFilter]
+	search_fields = ['code']
+	queryset = DiscountCode.objects.all().order_by('id')
+	serializer_class = DiscountCodeSerializer
+	pagination_class = StandardResultsSetPagination
+	permission_classes = [IsAuthenticated, IsStaffOrReadOnly, TokenHasReadWriteScope]
+
+	def retrieve(self, request, pk=None):
+		try:
+			discount = DiscountCode.objects.get(pk=pk)
+		except DiscountCode.DoesNotExist:
+			return Response(status=404)
+		serializer = DiscountCodeSerializer(discount, context={'request': request})
+		return Response(serializer.data)
+
+	def create(self, request):
+		serializer = DiscountCodeSerializer(data=request.data)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(serializer.data, status=201)
+		return Response(serializer.errors, status=400)
+
+	def update(self, request, pk=None):
+		try:
+			discount = DiscountCode.objects.get(pk=pk)
+		except DiscountCode.DoesNotExist:
+			return Response(status=404)
+		serializer = DiscountCodeSerializer(discount, data=request.data)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(serializer.data)
+		return Response(serializer.errors, status=400)
+
+	def destroy(self, request, pk=None):
+		try:
+			discount = DiscountCode.objects.get(pk=pk)
+		except DiscountCode.DoesNotExist:
+			return Response(status=404)
+		discount.delete()
+		return Response(status=204)
+	
+	@action(detail=False, methods=['get'], url_path='validate')
+	def validate(self, request):
+		code = request.GET.get('code', '').strip()
+		try:
+			discount = DiscountCode.objects.get(code__iexact=code)
+			if discount.is_valid():
+				return Response({"valid": True, "value": float(discount.discount_percentage), "message": ""})
+			else:
+				return Response({"valid": False, "value": 0, "message": "Mã giảm giá hết hạn hoặc đã sử dụng tối đa"})
+		except DiscountCode.DoesNotExist:
+			return Response({"valid": False, "value": 0, "message": "Mã giảm giá không tồn tại"})
 

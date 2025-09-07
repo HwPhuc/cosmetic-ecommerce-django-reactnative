@@ -4,7 +4,6 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAxios, endpoints } from '../../configs/Apis';
 import { useFocusEffect } from '@react-navigation/native';
-  
 
 export default function HomeScreen(props) {
   const { navigation } = props;
@@ -14,6 +13,8 @@ export default function HomeScreen(props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cartQuantity, setCartQuantity] = useState(0);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const fetchAllPages = async (token, endpoint, params = "") => {
     let url = endpoint + params;
@@ -55,6 +56,7 @@ export default function HomeScreen(props) {
     ]);
     setLoading(false);
   };
+
   // Hàm lấy số lượng sản phẩm trong giỏ hàng
   const fetchCartQuantity = async () => {
     const token = await AsyncStorage.getItem('access_token');
@@ -69,6 +71,41 @@ export default function HomeScreen(props) {
     }
   };
 
+  // Hàm định dạng giá tiền
+  const formatCurrency = (value) => {
+    if (!value) return '';
+    return Number(value).toLocaleString('vi-VN', { style: 'currency', currency: 'VND', minimumFractionDigits: 0 });
+  };
+
+  // Hàm lấy gợi ý sản phẩm theo tên
+  const fetchSuggestions = async (text) => {
+    if (!text) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    try {
+      const token = await AsyncStorage.getItem('access_token');
+      // Sử dụng fetchAllPages để lấy tất cả kết quả tìm kiếm
+      const allResults = await fetchAllPages(token, endpoints["products"], `?search=${encodeURIComponent(text)}`);
+      const filteredResults = allResults.filter(item =>
+        item.name && item.name.toLowerCase().includes(text.toLowerCase())
+      );
+      setSuggestions(filteredResults.slice(0, 6));
+      setShowSuggestions(true);
+    } catch (err) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  // Hàm làm mới khi kéo xuống
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchAll();
+    setRefreshing(false);
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       fetchCartQuantity();
@@ -79,12 +116,6 @@ export default function HomeScreen(props) {
     fetchAll();
   }, []);
 
-  // Hàm làm mới khi kéo xuống
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchAll();
-    setRefreshing(false);
-  };
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -116,10 +147,43 @@ export default function HomeScreen(props) {
         <TextInput
           style={styles.searchInput}
           value={search}
-          onChangeText={setSearch}
-          placeholder="Search"
+          onChangeText={text => {
+            setSearch(text);
+            fetchSuggestions(text);
+          }}
+          placeholder="Search sản phẩm..."
+          onFocus={() => search && setShowSuggestions(true)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
         />
       </View>
+      {/* Gợi ý auto-complete */}
+      {showSuggestions && suggestions.length > 0 && (
+        <View style={styles.suggestionBox}>
+          {suggestions.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.suggestionItem}
+              onPress={() => {
+                setSearch(item.name);
+                setShowSuggestions(false);
+                navigation.navigate('ProductDetail', { product: item });
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {item.image ? (
+                  <Image source={{ uri: item.image }} style={styles.suggestionImage} />
+                ) : (
+                  <View style={styles.suggestionImage} />
+                )}
+                <View style={{ marginLeft: 8 }}>
+                  <Text style={styles.suggestionName}>{item.name}</Text>
+                  <Text style={styles.suggestionPrice}>{item.price ? formatCurrency(item.price) : ''}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       {loading ? (
         <ActivityIndicator size="large" color="#1976d2" style={{ marginTop: 40 }} />
       ) : (
@@ -136,7 +200,7 @@ export default function HomeScreen(props) {
               )}
               <Text style={styles.featuredName}>{item.name}</Text>
               <Text style={styles.featuredDesc} numberOfLines={1} ellipsizeMode="tail">{item.description || ''}</Text>
-              <Text style={styles.featuredPrice}>{item.price ? `${item.price.toLocaleString()}đ` : ''}</Text>
+              <Text style={styles.featuredPrice}>{item.price ? formatCurrency(item.price) : ''}</Text>
               <Text style={{fontSize:12, color:'#888'}}>Đã bán: {item.sold || 0}</Text>
             </TouchableOpacity>
           )}
@@ -151,24 +215,28 @@ export default function HomeScreen(props) {
               {/* Danh mục */}
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>Danh mục</Text>
-                <TouchableOpacity><Text style={styles.sectionLink}>Xem tất cả</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('AllCategories')}><Text style={styles.sectionLink}>Xem tất cả</Text></TouchableOpacity>
               </View>
               <View style={styles.categoryRow}>
                 {categories.map((cat, idx) => (
-                  <View key={cat.id || cat.name || idx} style={styles.categoryItem}>
+                  <TouchableOpacity
+                    key={cat.id || cat.name || idx}
+                    style={styles.categoryItem}
+                    onPress={() => navigation.navigate('CategoryProducts', { category: cat })}
+                  >
                     {cat.image ? (
                       <Image source={{ uri: cat.image }} style={styles.categoryImage} resizeMode="cover" />
                     ) : (
                       <View style={styles.categoryImage} />
                     )}
                     <Text style={styles.categoryText}>{cat.name}</Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
               {/* Sản phẩm nổi bật */}
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>Sản phẩm nổi bật</Text>
-                <TouchableOpacity><Text style={styles.sectionLink}>Xem tất cả</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('AllProducts')}><Text style={styles.sectionLink}>Xem tất cả</Text></TouchableOpacity>
               </View>
             </>
           }
@@ -333,6 +401,47 @@ const styles = StyleSheet.create({
   },
   featuredPrice: {
     fontSize: 15,
+    color: '#1976d2',
+    fontWeight: 'bold',
+  },
+  suggestionBox: {
+    position: 'absolute',
+    top: 110,
+    left: '5%',
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    zIndex: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
+    paddingVertical: 4,
+  },
+  suggestionItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderColor: '#f2f2f2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  suggestionImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    backgroundColor: '#eee',
+  },
+  suggestionName: {
+    fontSize: 15,
+    color: '#222',
+    fontWeight: '500',
+  },
+  suggestionPrice: {
+    fontSize: 13,
     color: '#1976d2',
     fontWeight: 'bold',
   },

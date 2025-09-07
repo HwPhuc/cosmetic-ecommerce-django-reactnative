@@ -79,13 +79,13 @@ export default function EditProfileScreen({ navigation }) {
         setAvatarPreview(file.secure_url);
         const token = await AsyncStorage.getItem('access_token');
         await authAxios(token).patch(endpoints.updateUser, { ...form, image: file.secure_url });
-        Alert.alert('Thành công', 'Đã upload và lưu avatar mặc định lên Cloudinary!');
+        console.log('Thành công: Đã upload và lưu ảnh lên Cloudinary!');
         await fetchUser();
       } else {
-        Alert.alert('Lỗi', 'Không upload được ảnh.');
+        console.log('Lỗi', 'Không upload được ảnh.');
       }
     } catch (err) {
-      Alert.alert('Lỗi', 'Không upload được ảnh.');
+      console.log('Lỗi', 'Không upload được ảnh.');
     }
   };
 
