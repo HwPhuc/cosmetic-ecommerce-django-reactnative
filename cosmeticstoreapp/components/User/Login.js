@@ -2,8 +2,9 @@ import React, { useState, useContext } from 'react';
 import { UserDispatchContext } from '../../configs/Contexts';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { CLIENT_ID, CLIENT_SECRET, TOKEN_URL, axiosInstance, authAxios, endpoints } from '../../configs/Apis';
+import { TOKEN_URL, axiosInstance, authAxios, endpoints } from '../../configs/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {CLIENT_ID, CLIENT_SECRET} from "@env";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');

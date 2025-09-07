@@ -56,12 +56,22 @@ class ProductViewSet(viewsets.ViewSet, generics.ListAPIView):
 	pagination_class = StandardResultsSetPagination
 	permission_classes = [IsAuthenticated, IsStaffOrReadOnly, TokenHasReadWriteScope]
 
+	def get_queryset(self):
+		queryset = Product.objects.all().order_by('id')
+		category_id = self.request.query_params.get('category')
+		brand_id = self.request.query_params.get('brand')
+		if category_id:
+			queryset = queryset.filter(category_id=category_id)
+		if brand_id:
+			queryset = queryset.filter(brand_id=brand_id)
+		return queryset
+
 	def retrieve(self, request, pk=None):
 		try:
 			product = Product.objects.get(pk=pk)
 		except Product.DoesNotExist:
 			return Response(status=404)
-		serializer = ProductSerializer(product)
+		serializer = ProductSerializer(product, context={'request': request})
 		return Response(serializer.data)
 
 	def create(self, request):
@@ -105,7 +115,7 @@ class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
 			category = Category.objects.get(pk=pk)
 		except Category.DoesNotExist:
 			return Response(status=404)
-		serializer = CategorySerializer(category)
+		serializer = CategorySerializer(category, context={'request': request})
 		return Response(serializer.data)
 
 	def create(self, request):
@@ -230,6 +240,9 @@ class ReviewViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 # Cart chỉ chủ sở hữu hoặc admin được chỉnh sửa, người khác chỉ xem
 class CartViewSet(viewsets.ViewSet, generics.ListAPIView):
+	def get_queryset(self):
+		user = self.request.user
+		return Cart.objects.filter(user=user).order_by('id')
 	filter_backends = [filters.SearchFilter]
 	search_fields = ['user__username']
 	queryset = Cart.objects.all().order_by('id')
@@ -242,6 +255,9 @@ class CartViewSet(viewsets.ViewSet, generics.ListAPIView):
 			cart = Cart.objects.get(pk=pk)
 		except Cart.DoesNotExist:
 			return Response(status=404)
+		# Chỉ cho phép user truy cập cart của chính mình
+		if cart.user != request.user:
+			return Response({'detail': 'Bạn không có quyền truy cập giỏ hàng này.'}, status=403)
 		serializer = CartSerializer(cart)
 		return Response(serializer.data)
 
@@ -290,11 +306,28 @@ class CartItemViewSet(viewsets.ViewSet, generics.ListAPIView):
 		return Response(serializer.data)
 
 	def create(self, request):
-		serializer = CartItemSerializer(data=request.data)
-		if serializer.is_valid():
-			serializer.save()
-			return Response(serializer.data, status=201)
-		return Response(serializer.errors, status=400)
+		user = request.user
+		cart, _ = Cart.objects.get_or_create(user=user)
+		product_id = request.data.get('product')
+		if not product_id:
+			return Response({'error': 'Thiếu product_id'}, status=400)
+		quantity = int(request.data.get('quantity', 1))
+		# Kiểm tra sản phẩm đã có trong giỏ hàng chưa
+		cart_item = CartItem.objects.filter(cart=cart, product_id=product_id).first()
+		if cart_item:
+			cart_item.quantity += quantity
+			cart_item.save()
+			serializer = CartItemSerializer(cart_item)
+			return Response(serializer.data, status=200)
+		else:
+			data = request.data.copy()
+			data['cart'] = cart.id
+			data['product'] = product_id
+			serializer = CartItemSerializer(data=data)
+			if serializer.is_valid():
+				serializer.save()
+				return Response(serializer.data, status=201)
+			return Response(serializer.errors, status=400)
 
 	def update(self, request, pk=None):
 		try:
@@ -314,5 +347,15 @@ class CartItemViewSet(viewsets.ViewSet, generics.ListAPIView):
 			return Response(status=404)
 		item.delete()
 		return Response(status=204)
-
+	
+	def partial_update(self, request, pk=None):
+		try:
+			item = CartItem.objects.get(pk=pk)
+		except CartItem.DoesNotExist:
+			return Response(status=404)
+		serializer = CartItemSerializer(item, data=request.data, partial=True)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(serializer.data)
+		return Response(serializer.errors, status=400)
 

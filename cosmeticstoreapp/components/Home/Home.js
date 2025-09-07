@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ActivityInd
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAxios, endpoints } from '../../configs/Apis';
+import { useFocusEffect } from '@react-navigation/native';
   
 
 export default function HomeScreen(props) {
@@ -12,6 +13,7 @@ export default function HomeScreen(props) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [cartQuantity, setCartQuantity] = useState(0);
 
   const fetchAllPages = async (token, endpoint, params = "") => {
     let url = endpoint + params;
@@ -21,7 +23,7 @@ export default function HomeScreen(props) {
       const data = res.data;
       const results = data.results || data;
       allResults = allResults.concat(results);
-      url = data.next ? data.next.replace('http://0.0.0.0:8000', '') : null;
+      url = data.next ? data.next : null;
     }
     return allResults;
   };
@@ -53,6 +55,26 @@ export default function HomeScreen(props) {
     ]);
     setLoading(false);
   };
+  // Hàm lấy số lượng sản phẩm trong giỏ hàng
+  const fetchCartQuantity = async () => {
+    const token = await AsyncStorage.getItem('access_token');
+    if (!token) return setCartQuantity(0);
+    try {
+      const axios = authAxios(token);
+      const res = await axios.get('/carts/');
+      const cartData = Array.isArray(res.data.results) ? res.data.results[0] : res.data;
+      setCartQuantity(cartData?.total_quantity || 0);
+    } catch {
+      setCartQuantity(0);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchCartQuantity();
+    }, [])
+  );
+
   useEffect(() => {
     fetchAll();
   }, []);
@@ -68,8 +90,24 @@ export default function HomeScreen(props) {
       {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.headerLogo}>HOANGPHUC SHOP</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={{ position: 'relative' }}>
           <MaterialCommunityIcons name="cart-outline" size={28} color="#1976d2" />
+          {cartQuantity > 0 && (
+            <View style={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              backgroundColor: '#d32f2f',
+              borderRadius: 10,
+              minWidth: 18,
+              height: 18,
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingHorizontal: 4,
+            }}>
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>{cartQuantity}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
       {/* Search */}

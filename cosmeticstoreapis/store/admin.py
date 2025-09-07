@@ -46,11 +46,11 @@ class ImportTransactionAdmin(admin.ModelAdmin):
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
-	list_display = ("user", "created_at")
+	list_display = ("id", "user", "created_at")
 
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-	list_display = ("cart", "product", "quantity")
+	list_display = ("id", "cart", "product", "quantity")
 
 class OrderItemInline(admin.TabularInline):
 	model = OrderItem

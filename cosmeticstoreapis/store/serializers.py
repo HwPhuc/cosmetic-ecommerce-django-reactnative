@@ -73,7 +73,11 @@ class BrandSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data['image'] = instance.image.url if instance.image else ''
+        request = self.context.get('request', None)
+        if instance.image and request:
+            data['image'] = request.build_absolute_uri(instance.image.url)
+        else:
+            data['image'] = instance.image.url if instance.image else ''
         return data
 
     class Meta:
@@ -83,7 +87,11 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductImageSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data['image'] = instance.image.url if instance.image else ''
+        request = self.context.get('request', None)
+        if instance.image and request:
+            data['image'] = request.build_absolute_uri(instance.image.url)
+        else:
+            data['image'] = instance.image.url if instance.image else ''
         return data
 
     class Meta:
@@ -106,7 +114,11 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data['image'] = instance.image.url if instance.image else ''
+        request = self.context.get('request', None)
+        if instance.image and request:
+            data['image'] = request.build_absolute_uri(instance.image.url)
+        else:
+            data['image'] = instance.image.url if instance.image else ''
         return data
 
     class Meta:
@@ -125,10 +137,16 @@ class ImportTransactionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CartItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    product_name = serializers.SerializerMethodField()
+    product_detail = ProductSerializer(source='product', read_only=True)
+
+    def get_product_name(self, obj):
+        return obj.product.name if obj.product else ""
     class Meta:
         model = CartItem
         fields = '__all__'
+        extra_fields = ['product_name', 'product_detail']
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
