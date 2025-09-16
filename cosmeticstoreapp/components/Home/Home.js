@@ -218,7 +218,7 @@ export default function HomeScreen(props) {
                 <TouchableOpacity onPress={() => navigation.navigate('AllCategories')}><Text style={styles.sectionLink}>Xem tất cả</Text></TouchableOpacity>
               </View>
               <View style={styles.categoryRow}>
-                {categories.map((cat, idx) => (
+                {categories.slice(0, 3).map((cat, idx) => (
                   <TouchableOpacity
                     key={cat.id || cat.name || idx}
                     style={styles.categoryItem}

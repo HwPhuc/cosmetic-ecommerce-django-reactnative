@@ -86,14 +86,14 @@ export default function ProfileScreen({ navigation }) {
       >
         {/* List options */}
         <View style={styles.section}>
-          <ProfileItem icon="clipboard-list" label="Đơn hàng của tôi" />
-          <ProfileItem icon="heart-outline" label="Yêu thích" />
-          <ProfileItem icon="ticket-percent" label="Voucher của tôi" />
+          <ProfileItem icon="clipboard-list" label="Đơn hàng của tôi" onPress={() => navigation.navigate('MyOrders')} />
+          <ProfileItem icon="heart-outline" label="Yêu thích" onPress={() => navigation.navigate('FavoriteProducts')} />
+          <ProfileItem icon="ticket-percent" label="Voucher của tôi" onPress={() => navigation.navigate('MyVouchers')} />
         </View>
         <Text style={styles.sectionTitle}>CÀI ĐẶT TÀI KHOẢN</Text>
         <View style={styles.section}>
           <ProfileItem icon="account-edit" label="Thông tin cá nhân" onPress={() => navigation.navigate('EditProfile')} />
-          <ProfileItem icon="map-marker" label="Địa chỉ" />
+          <ProfileItem icon="map-marker" label="Địa chỉ" onPress={() => navigation.navigate('AddressManager')} />
           <ProfileItem icon="bell-outline" label="Thông báo" />
         </View>
         <Text style={styles.sectionTitle}>HỖ TRỢ</Text>

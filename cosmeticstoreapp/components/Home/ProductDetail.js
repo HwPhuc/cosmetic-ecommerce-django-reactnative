@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
-import { Alert, Dimensions } from 'react-native';
+import { Alert, Dimensions, TextInput } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, RefreshControl } from 'react-native';
 import { endpoints, authAxios } from '../../configs/Apis';
@@ -34,10 +34,16 @@ export default function ProductDetailScreen({ route, navigation }) {
   const screenWidth = Dimensions.get('window').width;
   const [addingToCart, setAddingToCart] = useState(false);
   const [addCartMsg, setAddCartMsg] = useState("");
+  const [canReview, setCanReview] = useState(false);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteId, setFavoriteId] = useState(null);
 
   const handleAddToCart = async () => {
     if (!token) {
-      Alert.alert("Bạn cần đăng nhập để thêm vào giỏ hàng.");
+      Alert.alert("Thông báo", "Bạn cần đăng nhập để thêm vào giỏ hàng.");
       return;
     }
     setAddingToCart(true);
@@ -47,9 +53,9 @@ export default function ProductDetailScreen({ route, navigation }) {
         product: product.id,
         quantity: 1
       });
-      Alert.alert("Đã thêm vào giỏ hàng!");
+      Alert.alert("Thông báo", "Đã thêm vào giỏ hàng!");
     } catch (err) {
-      Alert.alert("Lỗi khi thêm vào giỏ hàng!");
+      Alert.alert("Thông báo", "Lỗi khi thêm vào giỏ hàng!");
     }
     setAddingToCart(false);
   };
@@ -139,11 +145,106 @@ export default function ProductDetailScreen({ route, navigation }) {
     fetchData();
   }, [product.id, product.category, token]);
 
+  // Kiểm tra user đã mua sản phẩm chưa
+  useEffect(() => {
+    const checkCanReview = async () => {
+      if (!token) return setCanReview(false);
+      try {
+        const axios = authAxios(token);
+        // Gọi endpoint kiểm tra quyền review (hoặc lấy từ API /orders/?product=...&status=...)
+        const res = await axios.get(`/orders/?product=${product.id}&status=completed`);
+        setCanReview(Array.isArray(res.data.results) && res.data.results.length > 0);
+      } catch {
+        setCanReview(false);
+      }
+    };
+    checkCanReview();
+  }, [product.id, token]);
+
+  // Kiểm tra sản phẩm đã được user thích chưa
+  useEffect(() => {
+    // Reset trạng thái trước khi gọi API
+    setIsFavorite(false);
+    setFavoriteId(null);
+    const fetchFavorite = async () => {
+      if (!token) return;
+      try {
+        const axios = authAxios(token);
+        const res = await axios.get(`/favorite-products/?product=${product.id}`);
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setIsFavorite(true);
+          setFavoriteId(res.data[0].id);
+        } else {
+          setIsFavorite(false);
+          setFavoriteId(null);
+        }
+      } catch (err) {
+        setIsFavorite(false);
+        setFavoriteId(null);
+      }
+    };
+    fetchFavorite();
+  }, [product.id, token]);
+
   const onRefresh = async () => {
   setRefreshing(true);
   setShowAllReviews(false);
   await fetchData();
   setRefreshing(false);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewComment.trim()) {
+      Alert.alert("Thông báo", "Vui lòng nhập bình luận.");
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      const axios = authAxios(token);
+      await axios.post("/reviews/", {
+        product: product.id,
+        rating: reviewRating,
+        comment: reviewComment
+      });
+      Alert.alert("Thông báo", "Đã gửi bình luận!");
+      setReviewComment("");
+      setReviewRating(5);
+      fetchData(); // reload reviews
+    } catch (err) {
+      if (err.response?.status === 403) {
+        Alert.alert("Thông báo", "Bạn phải mua sản phẩm này trước khi bình luận.");
+      } else {
+        Alert.alert("Thông báo", "Lỗi khi gửi bình luận!");
+      }
+    }
+    setSubmittingReview(false);
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!token) {
+      Alert.alert("Thông báo", "Bạn cần đăng nhập để sử dụng tính năng này.");
+      return;
+    }
+    try {
+      const axios = authAxios(token);
+      if (isFavorite && favoriteId) {
+        await axios.delete(`/favorite-products/${favoriteId}/`);
+        setIsFavorite(false);
+        setFavoriteId(null);
+        Alert.alert("Thông báo", "Đã bỏ yêu thích sản phẩm.");
+      } else {
+        const res = await axios.post(`/favorite-products/`, { product_id: product.id });
+        setIsFavorite(true);
+        setFavoriteId(res.data.id);
+        Alert.alert("Thông báo", "Đã thêm vào yêu thích.");
+      }
+    } catch (err) {
+      if (err.response?.status === 400 && err.response?.data?.detail) {
+        Alert.alert("Thông báo", err.response.data.detail);
+      } else {
+        Alert.alert("Thông báo", "Có lỗi xảy ra khi thao tác.");
+      }
+    }
   };
 
   return (
@@ -187,7 +288,12 @@ export default function ProductDetailScreen({ route, navigation }) {
           </View>
         </View>
         {/* Product Info */}
-        <Text style={styles.productName}>{product.name}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={styles.productName}>{product.name}</Text>
+          <TouchableOpacity onPress={handleToggleFavorite} style={{ marginLeft: 8 }}>
+            <MaterialCommunityIcons name={isFavorite ? "heart" : "heart-outline"} size={22} color={isFavorite ? "#e53935" : "#888"} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.ratingRow}>
           <Text>⭐⭐⭐⭐⭐ ({reviewCount} đánh giá)</Text>
         </View>
@@ -210,6 +316,30 @@ export default function ProductDetailScreen({ route, navigation }) {
         <Text>Phù hợp: {product.skin_type || 'Đang cập nhật'}</Text>
         {/* Reviews */}
         <Text style={styles.sectionTitle}>Đánh giá ({reviewCount})</Text>
+        {/* Form viết bình luận */}
+        {canReview && (
+          <View style={{ marginBottom: 16, backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8 }}>
+            <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>Viết bình luận của bạn</Text>
+            <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+              {[1,2,3,4,5].map(star => (
+                <TouchableOpacity key={star} onPress={() => setReviewRating(star)}>
+                  <MaterialCommunityIcons name={star <= reviewRating ? "star" : "star-outline"} size={28} color={star <= reviewRating ? "#FFD700" : "#ccc"} />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginBottom: 8 }}
+              placeholder="Nhập bình luận của bạn"
+              value={reviewComment}
+              onChangeText={setReviewComment}
+              multiline
+              numberOfLines={3}
+            />
+            <TouchableOpacity style={{ backgroundColor: '#1976d2', padding: 10, borderRadius: 6, alignItems: 'center' }} onPress={handleSubmitReview} disabled={submittingReview}>
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>{submittingReview ? 'Đang gửi...' : 'Gửi bình luận'}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {reviews && reviews.length > 0 ? (
           <>
             {(showAllReviews ? reviews : reviews.slice(0, 3)).map(r => (

@@ -5,7 +5,7 @@ from .models import (
 	PaymentTransaction, Review,
 	DiscountCode, Promotion,
 	Notification, UserNotification,
-	ChatMessage, DiscountCode
+	ChatMessage, DiscountCode, ServiceFee, UserVoucher, FavoriteProduct
 )
 
 @admin.register(User)
@@ -105,3 +105,20 @@ class UserNotificationAdmin(admin.ModelAdmin):
 class ChatMessageAdmin(admin.ModelAdmin):
 	list_display = ("sender", "receiver", "timestamp")
 	search_fields = ("sender__username", "receiver__username")
+
+@admin.register(ServiceFee)
+class ServiceFeeAdmin(admin.ModelAdmin):
+	list_display = ("percent", "updated_at")
+
+@admin.register(UserVoucher)
+class UserVoucherAdmin(admin.ModelAdmin):
+	list_display = ("user", "discount_code", "received_at", "used", "used_at", "expired_at")
+	list_filter = ("used",)
+	search_fields = ("user__username", "discount_code__code")
+
+@admin.register(FavoriteProduct)
+class FavoriteProductAdmin(admin.ModelAdmin):
+    list_display = ("user", "product", "created_at")
+    search_fields = ("user__username", "product__name")
+    list_filter = ("user", "product")
+

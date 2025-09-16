@@ -1,4 +1,4 @@
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny, BasePermission
 
 # Chỉ cho phép staff chỉnh sửa, người dùng khác chỉ được xem
 class IsStaffOrReadOnly(IsAuthenticated):
@@ -14,3 +14,8 @@ class IsOwnerOrAdmin(IsAuthenticated):
             return True
         return obj.user == request.user or request.user.is_superuser
 
+# Chỉ cho phép staff truy cập
+class IsStaffOnly(BasePermission):
+	def has_permission(self, request, view):
+		return bool(request.user and request.user.is_staff)
+     

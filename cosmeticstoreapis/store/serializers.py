@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import *
+from .models import (
+    User, Brand, Category, Product, ProductImage, ImportTransaction, Cart, CartItem, Order, OrderItem,
+    PaymentTransaction, Review, DiscountCode, Promotion, Notification, UserAddress, UserNotification, ChatMessage, UserVoucher, FavoriteProduct
+)
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -64,6 +67,11 @@ class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True)
 
+class UserAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserAddress
+        fields = '__all__'
+        read_only_fields = ['user', 'created_at']
 
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
@@ -130,6 +138,15 @@ class ProductSerializer(serializers.ModelSerializer):
             'capacity', 'origin', 'ingredients', 'skin_type'
         )
     
+class FavoriteProductSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all(), write_only=True, source='product')
+
+    class Meta:
+        model = FavoriteProduct
+        fields = ['id', 'user', 'product', 'product_id', 'created_at']
+        read_only_fields = ['user', 'created_at', 'product']
+ 
 class ImportTransactionSerializer(serializers.ModelSerializer):
     import_date = serializers.DateTimeField(read_only=True)
     class Meta:
@@ -146,20 +163,50 @@ class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = '__all__'
-        extra_fields = ['product_name', 'product_detail']
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
     user = serializers.StringRelatedField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     total_quantity = serializers.SerializerMethodField()
+    shipping_fee = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    service_fee = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    user_address = serializers.SerializerMethodField()
+    discount_code = serializers.SerializerMethodField()
+    discount_amount = serializers.SerializerMethodField()
+    def get_discount_code(self, obj):
+        code = obj.discount_code
+        if code:
+            return {
+                'id': code.id,
+                'code': code.code,
+                'discount_percentage': str(code.discount_percentage)
+            }
+        return None
+
+    def get_discount_amount(self, obj):
+        # Tính số tiền giảm giá dựa trên discount_percentage
+        from decimal import Decimal
+        if obj.discount_code:
+            subtotal = sum([(item.product.price if item.product else Decimal('0')) * item.quantity for item in obj.items.all()])
+            percent = Decimal(str(obj.discount_code.discount_percentage))
+            return int(subtotal * percent / Decimal('100'))
+        return 0
 
     def get_total_quantity(self, obj):
         return sum([item.quantity for item in obj.items.all()])
 
+    def get_cart_total(self, obj):
+        return sum([(item.product.price if item.product else 0) * item.quantity for item in obj.items.all()])
+
+    # Xoá các hàm get_shipping_fee và get_service_fee, chỉ lấy từ trường của model
+    
+    def get_user_address(self, obj):
+        return obj.user.address if obj.user else ""
+
     class Meta:
         model = Cart
-        fields = ('id', 'user', 'created_at', 'items', 'total_quantity')
+        fields = ('id', 'user', 'created_at', 'items', 'total_quantity', 'shipping_fee', 'service_fee', 'address', 'user_address', 'discount_code', 'discount_amount')
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
@@ -170,17 +217,27 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     user = serializers.StringRelatedField(read_only=True)
-    discount_code = serializers.StringRelatedField(read_only=True)
+    discount_code = serializers.SerializerMethodField()
     payments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     status_display = serializers.SerializerMethodField()
 
     def get_status_display(self, obj):
         return obj.get_status_display()
+    
+    def get_discount_code(self, obj):
+        code = obj.discount_code
+        if code:
+            return {
+                'id': code.id,
+                'code': code.code,
+                'discount_percentage': str(code.discount_percentage)
+            }
+        return None
 
     class Meta:
         model = Order
-        fields = ('id', 'user', 'status', 'status_display', 'total_price', 'order_type', 'created_at', 'shipping_address', 'receiver_phone', 'discount_code', 'items', 'payments')
+        fields = ['id', 'user', 'status', 'status_display', 'total_price', 'order_type', 'created_at', 'address', 'receiver_phone', 'discount_code', 'items', 'payments', 'shipping_fee']
 
 class PaymentTransactionSerializer(serializers.ModelSerializer):
     order = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -191,7 +248,7 @@ class PaymentTransactionSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    product = serializers.StringRelatedField(read_only=True)
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     comment = serializers.CharField()
     created_at = serializers.DateTimeField(read_only=True)
 
@@ -221,6 +278,14 @@ class PromotionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Promotion
         fields = '__all__'
+
+# UserVoucherSerializer
+class UserVoucherSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+    discount_code = DiscountCodeSerializer(read_only=True)
+    class Meta:
+        model = UserVoucher
+        fields = ['id', 'user', 'discount_code', 'received_at', 'used', 'used_at', 'expired_at']
 
 class NotificationSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(read_only=True)
