@@ -1,7 +1,9 @@
-
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useContext } from 'react';
+import { UserDispatchContext } from '../../configs/Contexts';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
 
 const mockRevenue = 12500000;
 const mockNewOrders = 24;
@@ -34,17 +36,27 @@ function getStatusColor(status) {
 
 
 export default function EmployeeDashboard({ navigation }) {
+  const dispatch = useContext(UserDispatchContext);
+  // Xử lý đăng xuất
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('access_token');
+      if (dispatch) dispatch({ type: 'logout' });
+    } catch (err) {
+      Alert.alert('Đăng xuất thất bại', 'Có lỗi xảy ra khi đăng xuất. Vui lòng thử lại!');
+    }
+  };
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.headerLogo}>HOANGPHUC SHOP</Text>
-        <TouchableOpacity onPress={() => navigation && navigation.navigate && navigation.navigate('EmployeeOrders')} style={{ position: 'relative' }}>
-          <MaterialCommunityIcons name="clipboard-list-outline" size={28} color="#1976d2" />
+        <TouchableOpacity onPress={handleLogout} style={{ position: 'relative' }}>
+          <MaterialCommunityIcons name="logout" size={28} color="#1976d2" />
         </TouchableOpacity>
       </View>
 
-  <ScrollView style={{ flex: 1, marginBottom: 70 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1, marginBottom: 70 }} showsVerticalScrollIndicator={false}>
         {/* Thống kê nhanh */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
@@ -65,7 +77,7 @@ export default function EmployeeDashboard({ navigation }) {
             <MaterialCommunityIcons name="clipboard-list-outline" size={28} color="#1976d2" />
             <Text style={styles.quickActionLabel}>Đơn hàng</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionBtn}><MaterialCommunityIcons name="account-group-outline" size={28} color="#1976d2" /><Text style={styles.quickActionLabel}>Khách hàng</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionBtn}><MaterialCommunityIcons name="chat-outline" size={28} color="#1976d2" /><Text style={styles.quickActionLabel}>Chat</Text></TouchableOpacity>
           <TouchableOpacity style={styles.quickActionBtn}><MaterialCommunityIcons name="warehouse" size={28} color="#1976d2" /><Text style={styles.quickActionLabel}>Tồn kho</Text></TouchableOpacity>
           <TouchableOpacity style={styles.quickActionBtn}><MaterialCommunityIcons name="chart-bar" size={28} color="#1976d2" /><Text style={styles.quickActionLabel}>Báo cáo</Text></TouchableOpacity>
         </View>
@@ -106,15 +118,16 @@ export default function EmployeeDashboard({ navigation }) {
       </ScrollView>
 
       {/* Bottom nav */}
-  <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => navigation && navigation.navigate && navigation.navigate('EmployeeDashboard')}>
+      <View style={styles.bottomNav}>
+        <TouchableOpacity onPress={() => navigation && navigation.navigate && navigation.navigate('EmployeeHome')}>
           <MaterialCommunityIcons name="home-variant" style={styles.navIcon} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation && navigation.navigate && navigation.navigate('EmployeeOrders')}>
           <MaterialCommunityIcons name="clipboard-list-outline" style={styles.navIcon} />
         </TouchableOpacity>
-        <MaterialCommunityIcons name="account-group-outline" style={styles.navIcon} />
+        <MaterialCommunityIcons name="chat-outline" style={styles.navIcon} />
         <MaterialCommunityIcons name="warehouse" style={styles.navIcon} />
+        <MaterialCommunityIcons name="chart-bar" style={styles.navIcon} />
         <TouchableOpacity onPress={() => navigation && navigation.navigate && navigation.navigate('EmployeeProfile')}>
           <MaterialCommunityIcons name="account-circle-outline" style={styles.navIcon} />
         </TouchableOpacity>
@@ -122,6 +135,7 @@ export default function EmployeeDashboard({ navigation }) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

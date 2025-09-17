@@ -4,6 +4,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from './components/User/Login';
 import EmployeeDashboard from './components/Employee/Dashboard';
 import EmployeeOrders from './components/Employee/OrderManagement';
+import EmployeeOrderDetail from './components/Employee/OrderDetail';
+import EmployeeProfile from './components/Employee/EmployeeProfile';
 import EditAddressScreen from './components/User/EditAddress';
 import MyOrdersScreen from './components/User/MyOrders';
 import HomeScreen from './components/Home/Home';
@@ -35,6 +37,8 @@ export default function App() {
             <Stack.Navigator initialRouteName="EmployeeHome" screenOptions={{ headerShown: false }}>
               <Stack.Screen name="EmployeeHome" component={EmployeeDashboard} />
               <Stack.Screen name="EmployeeOrders" component={EmployeeOrders} />
+              <Stack.Screen name="OrderDetail" component={EmployeeOrderDetail} />
+              <Stack.Screen name="EmployeeProfile" component={EmployeeProfile} />
             </Stack.Navigator>
           ) : (
             <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>

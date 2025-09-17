@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // export const API_URL = 'http://192.168.1.167:8000';
-export const API_URL = 'http://192.168.1.59:8000';
+export const API_URL = 'http://192.168.1.154:8000';
 export const TOKEN_URL = `${API_URL}/o/token/`;
 
 // Các endpoint API

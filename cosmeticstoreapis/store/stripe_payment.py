@@ -164,14 +164,30 @@ def stripe_webhook(request):
                 total_price = Decimal('0')
             # Lấy địa chỉ giao hàng từ giỏ hàng hoặc user
             address = cart.address if cart and cart.address else user.address
+            # Lấy số điện thoại giao hàng: ưu tiên cart, sau đó user, nếu không có thì để trống
+            receiver_phone = None
+            if hasattr(cart, 'receiver_phone') and cart.receiver_phone:
+                receiver_phone = cart.receiver_phone
+            elif hasattr(cart, 'address') and cart.address:
+                # Nếu cart có address, thử lấy UserAddress mặc định
+                try:
+                    from .models import UserAddress
+                    user_address = UserAddress.objects.filter(user=user, address=cart.address).first()
+                    if user_address and user_address.phone:
+                        receiver_phone = user_address.phone
+                except Exception:
+                    pass
+            if not receiver_phone and user.phone:
+                receiver_phone = user.phone
             order = Order.objects.create(
                 user=user,
-                status='paid',
+                status='Paid',
                 total_price=total_price,
-                order_type='delivery',
+                order_type='Delivery',
                 discount_code=discount_code,
                 address=address,
-                shipping_fee=shipping_fee
+                shipping_fee=shipping_fee,
+                receiver_phone=receiver_phone
             )
             for item in cart_items:
                 OrderItem.objects.create(
