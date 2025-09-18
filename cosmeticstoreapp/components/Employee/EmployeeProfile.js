@@ -270,15 +270,29 @@ export default function EmployeeProfile({ navigation }) {
               </View>
             </>
           ) : (
-            <>
-              <Text style={styles.infoText}>Họ tên: {(user?.first_name || '') + ' ' + (user?.last_name || '') || 'Chưa có'}</Text>
-              <Text style={styles.infoText}>Email: {user?.email || 'Chưa có'}</Text>
-              <Text style={styles.infoText}>Số điện thoại: {user?.phone || 'Chưa có'}</Text>
-              <Text style={styles.infoText}>Vai trò: {user?.role || 'Nhân viên'}</Text>
-              <TouchableOpacity style={styles.editBtn} onPress={() => setEditing(true)}>
-                <Text style={styles.editBtnText}>Chỉnh sửa</Text>
-              </TouchableOpacity>
-            </>
+            <View style={styles.infoBoxGroup}>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Họ tên</Text>
+                <Text style={styles.infoValue}>{((user?.first_name || '') + ' ' + (user?.last_name || '')).trim() || 'Chưa có'}</Text>
+              </View>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{user?.email || 'Chưa có'}</Text>
+              </View>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Số điện thoại</Text>
+                <Text style={styles.infoValue}>{user?.phone || 'Chưa có'}</Text>
+              </View>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Vai trò</Text>
+                <Text style={styles.infoValue}>{user?.role || 'Nhân viên'}</Text>
+              </View>
+              <View style={{ alignItems: 'center', width: '100%' }}>
+                <TouchableOpacity style={styles.editBtn} onPress={() => setEditing(true)}>
+                  <Text style={styles.editBtnText}>Chỉnh sửa</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           )}
         </View>
       </ScrollView>
@@ -362,10 +376,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 4,
   },
-  infoText: {
-    fontSize: 16,
+  infoBoxGroup: {
+    width: '100%',
+    marginTop: 8,
     marginBottom: 8,
-    color: '#333',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  infoLabel: {
+    fontSize: 15,
+    color: '#888',
+    width: 110,
+    fontWeight: '500',
+  },
+  infoValue: {
+    fontSize: 16,
+    color: '#222',
+    flex: 1,
+    textAlign: 'right',
   },
   editBtn: {
     marginTop: 16,

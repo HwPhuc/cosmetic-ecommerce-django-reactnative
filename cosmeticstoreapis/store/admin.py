@@ -5,7 +5,7 @@ from .models import (
 	PaymentTransaction, Review,
 	DiscountCode, Promotion,
 	Notification, UserNotification,
-	ChatMessage, DiscountCode, ServiceFee, UserVoucher, FavoriteProduct
+	ChatMessage, DiscountCode, ServiceFee, UserVoucher, FavoriteProduct, StockHistory
 )
 
 @admin.register(User)
@@ -121,4 +121,11 @@ class FavoriteProductAdmin(admin.ModelAdmin):
     list_display = ("user", "product", "created_at")
     search_fields = ("user__username", "product__name")
     list_filter = ("user", "product")
+
+@admin.register(StockHistory)
+class StockHistoryAdmin(admin.ModelAdmin):
+    list_display = ("product", "user", "change", "note", "created_at")
+    search_fields = ("product__name", "user__username", "note")
+    list_filter = ("product", "user")
+    date_hierarchy = "created_at"
 

@@ -80,6 +80,7 @@ export default function AllProductsScreen({ navigation }) {
                 <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
                 <Text style={styles.productPrice}>{item.price ? formatCurrency(item.price) : ''}</Text>
                 <Text style={styles.soldText}>Đã bán: {item.sold || 0}</Text>
+                <Text style={styles.soldText}>Còn lại: {item.stock ?? 'Không rõ'}</Text>
               </TouchableOpacity>
             )}
             showsVerticalScrollIndicator={false}

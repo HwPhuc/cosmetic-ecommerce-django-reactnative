@@ -1,22 +1,26 @@
 from django.template.response import TemplateResponse
 from django.contrib.auth import get_user_model
+from django.db.models import Sum, Count, F
+from datetime import datetime, timedelta
 from rest_framework.views import APIView
 from rest_framework import status, viewsets, generics, filters, serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.generics import ListAPIView
 from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope
 from store.models import (
 	UserAddress,
 	recalculate_cart_fees,
 	Product, Category, Order, Review,
 	Cart, CartItem, DiscountCode, UserVoucher,
-	OrderStatus, FavoriteProduct
+	OrderStatus, FavoriteProduct, StockHistory
 )
 from .serializers import (
 	ProductSerializer, CategorySerializer, OrderSerializer, ReviewSerializer,
 	CartSerializer, CartItemSerializer, UserAddressSerializer, UserSerializer, 
-	DiscountCodeSerializer, UserVoucherSerializer, FavoriteProductSerializer
+	DiscountCodeSerializer, UserVoucherSerializer, FavoriteProductSerializer,
+	StockHistorySerializer,
 )
 from .permissions import IsStaffOnly, IsStaffOrReadOnly, IsOwnerOrAdmin
 from .pagination import StandardResultsSetPagination
@@ -233,8 +237,9 @@ class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 # Order chỉ chủ sở hữu hoặc admin được chỉnh sửa, người khác chỉ xem
 class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
-	filter_backends = [filters.SearchFilter]
+	filter_backends = [filters.SearchFilter, filters.OrderingFilter]
 	search_fields = ['address', 'receiver_phone']
+	ordering_fields = ['created_at', 'status', 'total_price']
 	serializer_class = OrderSerializer
 	pagination_class = StandardResultsSetPagination
 	permission_classes = [IsAuthenticated, IsOwnerOrAdmin, TokenHasReadWriteScope]
@@ -243,7 +248,8 @@ class OrderViewSet(viewsets.ViewSet, generics.ListAPIView):
 		user = self.request.user
 		if getattr(self, 'swagger_fake_view', False) or not user.is_authenticated:
 			return Order.objects.none()
-		return Order.objects.filter(user=user).order_by('id')
+		queryset = Order.objects.filter(user=user)
+		return queryset
 
 	def retrieve(self, request, pk=None):
 		try:
@@ -598,7 +604,7 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
 	permission_classes = [IsAuthenticated, IsStaffOnly]
 	pagination_class = StandardResultsSetPagination
 	filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-	search_fields = ['address', 'receiver_phone', 'user__username']
+	search_fields = ['id', 'address', 'receiver_phone', 'user__username']
 	ordering_fields = ['created_at', 'status', 'total_price']
 
 	def get_queryset(self):
@@ -607,3 +613,164 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
 		if status:
 			queryset = queryset.filter(status=status)
 		return queryset
+	
+
+# API quản lý tồn kho cho nhân viên
+class InventoryListView(ListAPIView):
+	queryset = Product.objects.all().order_by('id')
+	serializer_class = ProductSerializer
+	permission_classes = [IsAuthenticated, IsStaffOnly]
+
+	def get_queryset(self):
+		queryset = Product.objects.all().order_by('id')
+		search = self.request.query_params.get('search')
+		if search:
+			queryset = queryset.filter(name__icontains=search)
+		return queryset
+
+
+# API cập nhật tồn kho sản phẩm và ghi nhận lịch sử
+class UpdateStockAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+
+    def post(self, request, *args, **kwargs):
+        product_id = request.data.get('product_id')
+        change = request.data.get('change')
+        note = request.data.get('note', '')
+        if not product_id or change is None:
+            return Response({'error': 'Thiếu thông tin.'}, status=400)
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({'error': 'Không tìm thấy sản phẩm.'}, status=404)
+        try:
+            change = int(change)
+        except Exception:
+            return Response({'error': 'Số lượng không hợp lệ.'}, status=400)
+        # Cập nhật tồn kho
+        product.stock = max(product.stock + change, 0)
+        product.save(update_fields=['stock'])
+        # Ghi nhận lịch sử
+        StockHistory.objects.create(product=product, user=request.user, change=change, note=note)
+        return Response({'success': True, 'stock': product.stock})
+
+class StockHistoryListAPIView(ListAPIView):
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    serializer_class = StockHistorySerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        product_id = self.request.query_params.get('product_id')
+        qs = StockHistory.objects.all().order_by('-created_at')
+        if product_id:
+            qs = qs.filter(product_id=product_id)
+        return qs
+
+
+# API báo cáo tổng hợp cho nhân viên/admin
+class ReportSummaryAPIView(APIView):
+	permission_classes = [IsAuthenticated, IsStaffOnly]
+
+	def get(self, request):
+		# Tổng doanh thu (đơn đã thanh toán)
+		total_revenue = Order.objects.filter(status__in=[OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.COMPLETED]).aggregate(
+			total=Sum('total_price'))['total'] or 0
+
+		# Tổng số đơn hàng đã thanh toán
+		total_orders = Order.objects.filter(status__in=[OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.COMPLETED]).count()
+
+		# Tổng tồn kho hiện tại
+		total_stock = Product.objects.aggregate(total=Sum('stock'))['total'] or 0
+
+		# Top 5 sản phẩm bán chạy (dựa vào sold)
+		top_products = Product.objects.order_by('-sold')[:5]
+		top_products_data = [
+			{
+				'id': p.id,
+				'name': p.name,
+				'sold': p.sold,
+				'stock': p.stock
+			} for p in top_products
+		]
+
+		# Tổng số lượng nhập kho (tăng) và xuất kho (giảm)
+		total_import = StockHistory.objects.filter(change__gt=0).aggregate(total=Sum('change'))['total'] or 0
+		total_export = abs(StockHistory.objects.filter(change__lt=0).aggregate(total=Sum('change'))['total'] or 0)
+
+		return Response({
+			'total_revenue': total_revenue,
+			'total_orders': total_orders,
+			'total_stock': total_stock,
+			'top_products': top_products_data,
+			'total_import': total_import,
+			'total_export': total_export
+		})
+
+
+# API dashboard tổng hợp cho nhân viên
+class DashboardAPIView(APIView):
+	permission_classes = [IsAuthenticated, IsStaffOnly]
+
+	def get(self, request):
+		today = datetime.now().date()
+		# Doanh thu hôm nay
+		revenue_today = Order.objects.filter(
+			status__in=[OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.COMPLETED],
+			created_at__date=today
+		).aggregate(total=Sum('total_price'))['total'] or 0
+
+		# Thời gian cập nhật doanh thu (lấy đơn mới nhất)
+		last_order = Order.objects.filter(
+			status__in=[OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.COMPLETED],
+			created_at__date=today
+		).order_by('-created_at').first()
+		revenue_updated = last_order.created_at.strftime('%H:%M') if last_order else ''
+
+		# Đơn hàng mới hôm nay
+		new_orders = Order.objects.filter(
+			status__in=[OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.COMPLETED],
+			created_at__date=today
+		).count()
+
+		# Đơn hàng mới hôm qua để tính delta
+		yesterday = today - timedelta(days=1)
+		new_orders_yesterday = Order.objects.filter(
+			status__in=[OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.COMPLETED],
+			created_at__date=yesterday
+		).count()
+		new_orders_delta = new_orders - new_orders_yesterday
+
+		# Đơn hàng gần đây (5 đơn mới nhất)
+		recent_orders = Order.objects.filter(
+			status__in=[OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.COMPLETED]
+		).order_by('-created_at')[:5]
+		recent_orders_data = [
+			{
+				'id': o.id,
+				'customer': o.user.get_full_name() or o.user.username,
+				'time': o.created_at.strftime('%H:%M %d/%m'),
+				'price': o.total_price,
+				'status': o.get_status_display()
+			} for o in recent_orders
+		]
+
+		# Sản phẩm bán chạy (top 4)
+		best_sellers = Product.objects.order_by('-sold')[:4]
+		best_sellers_data = [
+			{
+				'id': p.id,
+				'name': p.name,
+				'price': p.price,
+				'sold': p.sold,
+				'image': p.image.url if p.image else None
+			} for p in best_sellers
+		]
+
+		return Response({
+			'revenue_today': revenue_today,
+			'revenue_updated': revenue_updated,
+			'new_orders': new_orders,
+			'new_orders_delta': new_orders_delta,
+			'recent_orders': recent_orders_data,
+			'best_sellers': best_sellers_data,
+		})

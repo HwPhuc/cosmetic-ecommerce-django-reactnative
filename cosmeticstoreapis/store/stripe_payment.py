@@ -181,9 +181,9 @@ def stripe_webhook(request):
                 receiver_phone = user.phone
             order = Order.objects.create(
                 user=user,
-                status='Paid',
+                status='paid',
                 total_price=total_price,
-                order_type='Delivery',
+                order_type='delivery',
                 discount_code=discount_code,
                 address=address,
                 shipping_fee=shipping_fee,
@@ -196,6 +196,13 @@ def stripe_webhook(request):
                     quantity=item.quantity,
                     price=item.product.price,
                 )
+                # Giảm stock và tăng sold cho sản phẩm
+                product = item.product
+                if product.stock is not None:
+                    product.stock = max(product.stock - item.quantity, 0)
+                if product.sold is not None:
+                    product.sold += item.quantity
+                product.save(update_fields=["stock", "sold"])
             # Đảm bảo discount_code đã được lưu vào order trước khi xóa khỏi cart
             cart_items.delete()
             cart.discount_code = None

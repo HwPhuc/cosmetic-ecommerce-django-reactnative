@@ -36,8 +36,8 @@ export default function LoginScreen({ navigation }) {
       const userRes = await authAxios(res.data.access_token).get(endpoints.currentUser);
       // Lưu username vào AsyncStorage để HomeScreen hiển thị đúng
       await AsyncStorage.setItem('username', userRes.data.username);
-      // Dispatch user vào context
-      dispatch({ type: 'login', payload: userRes.data });
+      // Dispatch user vào context (kèm access_token)
+      dispatch({ type: 'login', payload: { ...userRes.data, access_token: res.data.access_token } });
       navigation.replace('Home');
     } catch (err) {
       if (err.response) {

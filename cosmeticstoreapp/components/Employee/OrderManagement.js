@@ -47,14 +47,15 @@ export default function EmployeeOrders({ navigation }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [updateModal, setUpdateModal] = useState({ visible: false, order: null });
 
-  const fetchOrders = async (reset = false, pageNum = 1) => {
+  // Nhận search/status làm tham số, mặc định lấy từ state
+  const fetchOrders = async (reset = false, pageNum = 1, customSearch = '', customStatus = '') => {
     if (reset) setLoading(true);
     setError('');
     try {
       const token = await AsyncStorage.getItem('access_token');
       let url = endpoints.adminOrders + `?ordering=-created_at&page_size=10&page=${pageNum}`;
-      if (status) url += `&status=${status}`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (customStatus) url += `&status=${customStatus}`;
+      if (customSearch) url += `&search=${encodeURIComponent(customSearch)}`;
       const res = await authAxios(token).get(url);
       if (res.data && res.data.results) {
         if (reset) {
@@ -80,22 +81,25 @@ export default function EmployeeOrders({ navigation }) {
     }
   };
 
+  // Khi status thay đổi, fetch lại đơn hàng với search hiện tại
   useEffect(() => {
-    fetchOrders(true, 1);
+    fetchOrders(true, 1, search, status);
     setPage(1);
   }, [status]);
 
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchOrders(true, 1);
+    await fetchOrders(true, 1, search, status);
     setPage(1);
     setRefreshing(false);
   };
 
+  // Khi tìm kiếm, reset status về tất cả
   const onSearch = async () => {
+    setStatus('');
     setLoading(true);
-    await fetchOrders(true, 1);
+    await fetchOrders(true, 1, search, '');
     setPage(1);
     setLoading(false);
   };
@@ -104,11 +108,11 @@ export default function EmployeeOrders({ navigation }) {
     if (loadingMore || !next) return;
     setLoadingMore(true);
     const nextPage = page + 1;
-    await fetchOrders(false, nextPage);
+    await fetchOrders(false, nextPage, search, status);
     setPage(nextPage);
   };
 
-  // Xử lý các nút hành động
+  // Nút hành động
   const handleDetail = (order) => {
     if (navigation && navigation.navigate) {
       navigation.navigate('OrderDetail', { orderId: order.id });
@@ -119,7 +123,7 @@ export default function EmployeeOrders({ navigation }) {
     try {
       const token = await AsyncStorage.getItem('access_token');
       await authAxios(token).patch(`${endpoints.adminOrders}${order.id}/`, { status: newStatus });
-      await fetchOrders(true, 1);
+      await fetchOrders(true, 1, search, status);
       setPage(1);
     } catch (e) {
       setError('Cập nhật trạng thái thất bại.');
@@ -272,7 +276,14 @@ export default function EmployeeOrders({ navigation }) {
             <TouchableOpacity
               key={s.key}
               style={[styles.statusTab, status === s.key && styles.statusTabActive]}
-              onPress={() => setStatus(s.key)}
+              onPress={async () => {
+                setSearch('');
+                setStatus(s.key);
+                setLoading(true);
+                await fetchOrders(true, 1, '', s.key);
+                setPage(1);
+                setLoading(false);
+              }}
             >
               <Text style={status === s.key ? styles.statusTabTextActive : styles.statusTabText}>{s.label}</Text>
             </TouchableOpacity>
@@ -290,6 +301,7 @@ export default function EmployeeOrders({ navigation }) {
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.2}
             ListFooterComponent={loadingMore ? <ActivityIndicator style={{marginVertical:16}} color="#1976d2" /> : null}
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>
@@ -305,7 +317,7 @@ const styles = StyleSheet.create({
   },
   bodyWrapper: {
     flex: 1,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
   },
   headerRow: {
     width: '100%',
@@ -352,15 +364,19 @@ const styles = StyleSheet.create({
   },
   statusTabs: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     marginBottom: 10,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 2,
   },
   statusTab: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     backgroundColor: '#f5f5f5',
-    borderRadius: 5,
-    marginRight: 5,
+    borderRadius: 8,
+    marginHorizontal: 3,
+    marginBottom: 6,
   },
   statusTabActive: {
     backgroundColor: '#1976d2',

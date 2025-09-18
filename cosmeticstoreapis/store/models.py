@@ -294,11 +294,23 @@ class ServiceFee(models.Model):
         return f"Service Fee: {self.percent}%"
     
 
+# ==========================
+# STOCK HISTORY
+# ==========================
+class StockHistory(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name="stock_histories")
+    user = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True)
+    change = models.IntegerField(help_text="Số lượng thay đổi, dương là nhập, âm là xuất hoặc chỉnh sửa giảm")
+    note = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.product.name}: {self.change} ({self.created_at:%Y-%m-%d %H:%M})"
+
 
 # ==========================
 # HÀM TIỆN ÍCH LIÊN QUAN ĐẾN CART & ĐƠN HÀNG
 # ==========================
-
 # Nhận diện địa chỉ nội thành
 def is_inner_city(address):
     inner_city_patterns = [

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     User, Brand, Category, Product, ProductImage, ImportTransaction, Cart, CartItem, Order, OrderItem,
-    PaymentTransaction, Review, DiscountCode, Promotion, Notification, UserAddress, UserNotification, ChatMessage, UserVoucher, FavoriteProduct
+    PaymentTransaction, Review, DiscountCode, Promotion, Notification, UserAddress, UserNotification, ChatMessage, UserVoucher, FavoriteProduct, StockHistory
 )
 
 class UserSerializer(serializers.ModelSerializer):
@@ -310,4 +310,12 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatMessage
         fields = '__all__'
+
+class StockHistorySerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    class Meta:
+        model = StockHistory
+        fields = ['id', 'product', 'product_name', 'user', 'user_name', 'change', 'note', 'created_at']
+        read_only_fields = ['id', 'product_name', 'user_name', 'created_at']
 

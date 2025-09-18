@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../../configs/firebaseConfig';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ActivityIndicator, FlatList } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAxios, endpoints } from '../../configs/Apis';
+import { UserContext } from '../../configs/Contexts';
 import { useFocusEffect } from '@react-navigation/native';
 
 export default function HomeScreen(props) {
   const { navigation } = props;
+  const user = useContext(UserContext);
   const [search, setSearch] = useState('');
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
@@ -15,6 +19,20 @@ export default function HomeScreen(props) {
   const [cartQuantity, setCartQuantity] = useState(0);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Tự động tạo user Firestore nếu chưa có
+  async function ensureUserInFirestore(user) {
+    if (!user?.id || !user?.username) return;
+    const userRef = doc(db, 'users', String(user.id));
+    const docSnap = await getDoc(userRef);
+    if (!docSnap.exists()) {
+      await setDoc(userRef, {
+        username: user.username,
+        name: user.name || '',
+        role: 'customer',
+      });
+    }
+  }
 
   const fetchAllPages = async (token, endpoint, params = "") => {
     let url = endpoint + params;
@@ -114,7 +132,10 @@ export default function HomeScreen(props) {
 
   useEffect(() => {
     fetchAll();
-  }, []);
+    if (user && user.id && user.username) {
+      ensureUserInFirestore(user);
+    }
+  }, [user]);
 
   return (
     <View style={styles.container}>
@@ -156,7 +177,7 @@ export default function HomeScreen(props) {
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
         />
       </View>
-      {/* Gợi ý auto-complete */}
+      {/* auto-complete */}
       {showSuggestions && suggestions.length > 0 && (
         <View style={styles.suggestionBox}>
           {suggestions.map(item => (
@@ -210,7 +231,7 @@ export default function HomeScreen(props) {
               {/* Ưu đãi đặc biệt */}
               <View style={styles.specialOffer}>
                 <Text style={styles.specialTitle}>Ưu đãi đặc biệt</Text>
-                <Text style={styles.specialDesc}>Giảm giá 30% cho tất cả sản phẩm</Text>
+                <Text style={styles.specialDesc}>Freeship cho đơn hàng từ 500.000đ</Text>
               </View>
               {/* Danh mục */}
               <View style={styles.sectionRow}>
@@ -248,8 +269,18 @@ export default function HomeScreen(props) {
       {/* Bottom navigation */}
       <View style={styles.bottomNav}>
         <MaterialCommunityIcons name="home-variant" style={styles.navIcon} />
-        <MaterialCommunityIcons name="chat-outline" style={styles.navIcon} />
-        <MaterialCommunityIcons name="apps" style={styles.navIcon} />
+        <TouchableOpacity
+          onPress={() => {
+            if (user && user.id && user.username) {
+              navigation.navigate('Chat', { userId: user.id, userName: user.username });
+            } else {
+              navigation.navigate('Login');
+            }
+          }}
+        >
+          <MaterialCommunityIcons name="chat-outline" style={styles.navIcon} />
+        </TouchableOpacity>
+        <MaterialCommunityIcons name="qrcode-scan" style={styles.navIcon} />
         <MaterialCommunityIcons name="bell-outline" style={styles.navIcon} />
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
           <MaterialCommunityIcons name="account-circle-outline" style={styles.navIcon} />

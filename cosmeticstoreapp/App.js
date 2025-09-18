@@ -24,6 +24,10 @@ import MyVouchersScreen from './components/User/MyVouchers';
 import AddAddressScreen from './components/User/AddAddress';
 import UserReducer from './reducers/UserReducer';
 import { UserContext, UserDispatchContext } from './configs/Contexts';
+import InventoryScreen from './components/Employee/Inventory';
+import EmployeeReports from './components/Employee/Reports';
+import CustomerList from './components/Employee/CustomerList';
+import Chat from './components/Common/Chat';
 
 const Stack = createStackNavigator();
 
@@ -39,6 +43,10 @@ export default function App() {
               <Stack.Screen name="EmployeeOrders" component={EmployeeOrders} />
               <Stack.Screen name="OrderDetail" component={EmployeeOrderDetail} />
               <Stack.Screen name="EmployeeProfile" component={EmployeeProfile} />
+              <Stack.Screen name="EmployeeInventory" component={InventoryScreen} />
+              <Stack.Screen name="EmployeeReports" component={EmployeeReports} />
+              <Stack.Screen name="CustomerList" component={CustomerList} options={{ title: 'Chọn khách hàng' }} />
+              <Stack.Screen name="Chat" component={Chat} />
             </Stack.Navigator>
           ) : (
             <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
@@ -59,6 +67,7 @@ export default function App() {
               <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
               <Stack.Screen name="MyVouchers" component={MyVouchersScreen} />
               <Stack.Screen name="FavoriteProducts" component={FavoriteProductsScreen} />
+              <Stack.Screen name="Chat" component={Chat} />
             </Stack.Navigator>
           )}
         </NavigationContainer>

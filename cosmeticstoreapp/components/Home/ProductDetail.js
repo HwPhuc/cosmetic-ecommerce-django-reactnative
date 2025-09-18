@@ -60,6 +60,27 @@ export default function ProductDetailScreen({ route, navigation }) {
     setAddingToCart(false);
   };
 
+  // Nút mua ngay
+  const handleBuyNow = async () => {
+    if (!token) {
+      Alert.alert("Thông báo", "Bạn cần đăng nhập để mua hàng.");
+      return;
+    }
+    setAddingToCart(true);
+    try {
+      const axios = authAxios(token);
+      await axios.post("/cart-items/", {
+        product: product.id,
+        quantity: 1
+      });
+      // Điều hướng sang màn hình giỏ hàng (Cart)
+      navigation.navigate('Cart');
+    } catch (err) {
+      Alert.alert("Thông báo", "Lỗi khi thêm vào giỏ hàng!");
+    }
+    setAddingToCart(false);
+  };
+
   useEffect(() => {
     // Nếu chưa có token từ context, lấy từ AsyncStorage
     if (!token) {
@@ -425,11 +446,10 @@ export default function ProductDetailScreen({ route, navigation }) {
           <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart} disabled={addingToCart}>
             <Text>Thêm vào giỏ</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.buyBtn}>
-            <Text style={{ color: '#fff' }}>Mua ngay</Text>
+          <TouchableOpacity style={styles.buyBtn} onPress={handleBuyNow} disabled={addingToCart}>
+            <Text style={{ color: '#fff' }}>{addingToCart ? 'Đang xử lý...' : 'Mua ngay'}</Text>
           </TouchableOpacity>
         </View>
-  {/* Không hiển thị thông báo chữ, đã dùng alert */}
       </ScrollView>
     </>
   );

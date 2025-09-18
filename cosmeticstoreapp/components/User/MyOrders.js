@@ -22,7 +22,7 @@ export default function MyOrdersScreen({ navigation }) {
         setLoading(false);
         return;
       }
-      const res = await authAxios(token).get(endpoints.orders + `?page_size=10&page=${pageNum}`);
+      const res = await authAxios(token).get(endpoints.orders + `?ordering=-created_at&page_size=10&page=${pageNum}`);
       if (res.data && res.data.results) {
         if (reset) {
           setOrders(res.data.results);

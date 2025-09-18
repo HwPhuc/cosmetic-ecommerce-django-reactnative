@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // export const API_URL = 'http://192.168.1.167:8000';
-export const API_URL = 'http://192.168.1.154:8000';
+export const API_URL = 'http://172.16.1.174:8000';
 export const TOKEN_URL = `${API_URL}/o/token/`;
 
 // Các endpoint API
@@ -16,6 +16,10 @@ export const endpoints = {
 	userAddresses: '/user-addresses/',
 	orders: '/orders/',
 	adminOrders: '/admin-orders/',
+	inventory: '/inventory/',
+	updateStock: '/update-stock/',
+	reportSummary: '/report-summary/',
+	dashboard: '/dashboard/',
 };
 
 // Axios instance không token

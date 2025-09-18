@@ -6,7 +6,7 @@ from .views import (
     ProductViewSet, CategoryViewSet, OrderViewSet, ReviewViewSet, CartViewSet, CartItemViewSet,
     CurrentUserAPIView, RegisterUserAPIView, UpdateUserAPIView, DiscountCodeViewSet,
     stripe_success_view, stripe_cancel_view, UserAddressViewSet, UserVoucherViewSet, FavoriteProductViewSet,
-    AdminOrderViewSet
+    AdminOrderViewSet, InventoryListView, UpdateStockAPIView, StockHistoryListAPIView, ReportSummaryAPIView, DashboardAPIView
 )
 
 router = DefaultRouter()
@@ -31,4 +31,9 @@ urlpatterns = [
     path('success/', stripe_success_view, name='stripe-success'),
     path('cancel/', stripe_cancel_view, name='stripe-cancel'),
     path('stripe/webhook/', stripe_webhook, name='stripe-webhook'),
+    path('inventory/', InventoryListView.as_view(), name='inventory'),
+    path('update-stock/', UpdateStockAPIView.as_view(), name='update-stock'),
+    path('stock-history/', StockHistoryListAPIView.as_view(), name='stock-history'),
+    path('report-summary/', ReportSummaryAPIView.as_view(), name='report-summary'),
+    path('dashboard/', DashboardAPIView.as_view(), name='dashboard'),
 ]
