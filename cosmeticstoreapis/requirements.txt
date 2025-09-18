@@ -27,3 +27,4 @@ Unidecode==1.4.0
 uritemplate==4.2.0
 urllib3==2.5.0
 gunicorn
+whitenoise==6.11.0
